@@ -112,6 +112,11 @@ public class Player : MonoBehaviour
         {
             _timeInHole = 0;
         }
+        else if (other.CompareTag("FallZone"))
+        {
+        // Возврат на текущий трек
+            TrackManager.RespawnCurrentTrack();
+        }
     }
 
     private void OnTriggerStay(Collider other)
@@ -134,4 +139,8 @@ public class Player : MonoBehaviour
             _timeInHole = 0;
         }
     }
+
+   
 }
+
+

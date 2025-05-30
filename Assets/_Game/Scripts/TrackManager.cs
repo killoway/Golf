@@ -23,4 +23,14 @@ public class TrackManager : MonoBehaviour
 
         Player.SpawnTo(Tracks[_currentTrack].SpawnPoint.position);
     }
+
+    public void RespawnCurrentTrack()
+    {
+        var rb = Player.GetComponent<Rigidbody>();
+        rb.velocity = Vector3.zero;
+        rb.angularVelocity = Vector3.zero;
+
+        // Телепортируем
+        Player.SpawnTo(Tracks[_currentTrack].SpawnPoint.position);
+    }
 }
