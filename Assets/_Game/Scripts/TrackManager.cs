@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class TrackManager : MonoBehaviour
 {
@@ -7,30 +8,48 @@ public class TrackManager : MonoBehaviour
 
     private int _currentTrack;
 
-
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         if (Player && Tracks.Length > 0)
         {
-            Player.SpawnTo(Tracks[0].SpawnPoint.position);
+            _currentTrack = 0;
+            Player.SpawnTo(Tracks[_currentTrack].SpawnPoint.position);
         }
     }
 
     public void NextTrack()
     {
-        _currentTrack = (_currentTrack + 1) % Tracks.Length;
+        // Если еще остались треки — перейти на следующий
+        if (_currentTrack < Tracks.Length - 1)
+        {
+            _currentTrack++;
+            Player.SpawnTo(Tracks[_currentTrack].SpawnPoint.position);
+        }
+        else
+        {
+            // Последний трек завершён — перейти на следующую сцену
+            Debug.Log("Последний трек. Загружаем следующую сцену...");
 
-        Player.SpawnTo(Tracks[_currentTrack].SpawnPoint.position);
+            int nextSceneIndex = SceneManager.GetActiveScene().buildIndex + 1;
+
+            // Если следующая сцена существует в Build Settings
+            if (nextSceneIndex < SceneManager.sceneCountInBuildSettings)
+            {
+                SceneManager.LoadScene(nextSceneIndex);
+            }
+            else
+            {
+                Debug.Log("Следующая сцена не найдена. Это был финал.");
+            }
+        }
     }
 
     public void RespawnCurrentTrack()
     {
         var rb = Player.GetComponent<Rigidbody>();
-        rb.velocity = Vector3.zero;
+        rb.linearVelocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
 
-        // Телепортируем
         Player.SpawnTo(Tracks[_currentTrack].SpawnPoint.position);
     }
 }

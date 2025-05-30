@@ -1,11 +1,13 @@
 using UnityEngine.InputSystem;
 using UnityEngine;
 using Unity.Cinemachine;
+using UnityEngine.SceneManagement;
 
 [RequireComponent(typeof(Rigidbody))]
 [RequireComponent(typeof(LineRenderer))]
 public class Player : MonoBehaviour
 {
+    public AudioSource HoleAudioSource;
     public CinemachineVirtualCameraBase PlayerCamera;
     public Camera MainCamera;
     public TrackManager TrackManager;
@@ -13,6 +15,8 @@ public class Player : MonoBehaviour
     public float ForceAcceleration = 1.5f;
     public Color MinForceColor = Color.green;
     public Color MaxForceColor = Color.red;
+    public UIManager UIManager;
+
 
     private Rigidbody _rigidbody;
     private LineRenderer _lineRenderer;
@@ -20,6 +24,8 @@ public class Player : MonoBehaviour
     private float _pingPongTime;
     private bool _canShoot;
     private float _timeInHole;
+    private int _hitCount = 0;
+
 
     private void Awake()
     {
@@ -82,6 +88,9 @@ public class Player : MonoBehaviour
             var forceDirection = new Vector3(cameraForward.x, 0, cameraForward.z) * _currentForce;
 
             _rigidbody.AddForce(forceDirection, ForceMode.Impulse);
+
+            _hitCount++;
+            UIManager.UpdateHitCounter(_hitCount);
         }
     }
 
@@ -106,18 +115,27 @@ public class Player : MonoBehaviour
         }
     }
 
+    private bool _hasPlayedHoleSound = false;
+
     private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Hole"))
         {
             _timeInHole = 0;
+
+            // Проигрываем звук с объекта лунки, если там есть AudioSource
+            AudioSource holeAudio = other.GetComponent<AudioSource>();
+            if (holeAudio != null && !holeAudio.isPlaying)
+            {
+                holeAudio.Play();
+            }
         }
         else if (other.CompareTag("FallZone"))
         {
-        // Возврат на текущий трек
             TrackManager.RespawnCurrentTrack();
         }
     }
+
 
     private void OnTriggerStay(Collider other)
     {
@@ -127,7 +145,36 @@ public class Player : MonoBehaviour
 
             if (_timeInHole > 1.5f)
             {
-                TrackManager.NextTrack();
+                Hole hole = other.GetComponent<Hole>();
+                if (hole != null)
+                {
+                    bool isLastTrack = hole.TrackIndex == TrackManager.Tracks.Length - 1;
+
+                    bool isLastHole = false;
+                    if (isLastTrack)
+                    {
+                        // Получаем последний трек
+                        var lastTrack = TrackManager.Tracks[hole.TrackIndex];
+
+                        if (lastTrack.Holes != null && lastTrack.Holes.Length > 0)
+                        {
+                            isLastHole = hole.HoleIndex == lastTrack.Holes.Length - 1;
+                        }
+                    }
+
+                    if (isLastTrack && isLastHole)
+                    {
+                        LoadNextScene();
+                    }
+                    else
+                    {
+                        TrackManager.NextTrack();
+                    }
+                }
+                else
+                {
+                    TrackManager.NextTrack();
+                }
             }
         }
     }
@@ -141,6 +188,14 @@ public class Player : MonoBehaviour
     }
 
    
+
+    private void LoadNextScene()
+    {
+        // Можно грузить по индексу или по имени
+        int currentSceneIndex = SceneManager.GetActiveScene().buildIndex;
+        SceneManager.LoadScene(currentSceneIndex + 1);
+    }
+
 }
 
 
